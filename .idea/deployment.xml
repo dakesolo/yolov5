@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="root@region-11.autodl.com:15236 password (2)" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="root@region-11.autodl.com:15236 password">
         <serverdata>
@@ -12,15 +12,11 @@
       <paths name="root@region-11.autodl.com:15236 password (2)">
         <serverdata>
           <mappings>
-            <mapping local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="root@region-11.autodl.com:15236 password (3)">
-        <serverdata>
-          <mappings>
             <mapping deploy="/root/autodl-tmp/dakesolo-yolov5" local="$PROJECT_DIR$" />
           </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/data" />
+          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>

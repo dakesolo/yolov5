@@ -1,8 +1,8 @@
 import torch.nn as nn
 
-from models.common.Bottleneck import BottleneckCSP
-from models.common.Bottleneck import BottleneckSPPF
-from models.common.Conv import Conv
+from models.common.bottleneck import BottleneckCSP
+from models.common.bottleneck import BottleneckSPPF
+from models.common.conv import Conv
 
 
 class CSPDarknetP5(nn.Module):
@@ -29,12 +29,12 @@ class CSPDarknetP5(nn.Module):
         x = self.cv3(x)
         x = self.cv4(x)
         x = self.cv5(x)
-        output.append(x)
+        output.insert(0, x)
         x = self.cv6(x)
         x = self.cv7(x)
-        output.append(x)
+        output.insert(0, x)
         x = self.cv8(x)
         x = self.cv9(x)
         x = self.cv10(x)
-        output.append(x)
+        output.insert(0, x)
         return output

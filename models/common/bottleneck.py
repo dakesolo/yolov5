@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.common.Conv import Conv
+from models.common.conv import Conv
 import warnings
 
 
