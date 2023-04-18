@@ -8,7 +8,7 @@ from pycocotools.coco import COCO
 from torchvision.datasets import CocoDetection
 
 def main():
-    test_3()
+    test_2()
 
 def test_3():
 
