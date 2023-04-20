@@ -1,44 +1,57 @@
 import os
 import sys
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+import torch
+from torch import nn
+
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 sys.path.append(BASE_DIR)
 
-import torch
-from torchvision.datasets import CocoDetection
-import torchvision.transforms as transforms
-import torch.utils.data as Data
-from models.backbone.CSPDarknet import CSPDarknetP5
-from models.head.yolov5_head import Yolov5Head
-from models.neck.yolov5_PAFPN import Yolov5PAFPN
+from models.yolov5 import Grid, Anchor, box_ciou
+
+
+def test_grid():
+    # Grid
+    grids = [
+        [80, 80],
+        [40, 40],
+        [20, 20]
+    ]
+    for grid_rc in grids:
+        grid = Grid([34, 89], [640, 640], grid_rc)
+        # print(grid.get_grid_wh())
+        # print(grid.get_grid_center_xy())
+        # print(grid.get_grid_index_center_xy())
+        # print(grid.get_grid_index_xy())
+        print(grid.get_grid_positives())
+
+def test_anchor():
+    anchors = [
+        [[68, 69], [154, 91], [143, 162]],  # P3/8
+        [[242, 160], [189, 287], [391, 207]],  # P4/16
+        [[353, 337], [539, 341], [443, 432]]  # P5/32
+    ]
+    for anchor in anchors:
+        # anchor = Anchor([68, 120], [[68, 69], [154, 91], [143, 162]])\
+        anchor_object = Anchor([68, 120], anchor, 4)
+        print(anchor_object.get_anchor_positives())
+
+def test_iou():
+    iou = box_ciou(torch.Tensor([5, 20, 30, 40]), torch.Tensor([10, 20, 30, 40]))
+    print(iou)
+
+def test_iou_shape():
+    grid_obj = Grid([34, 89], [640, 640], [80, 80])
+    anchor_obj = Anchor([68, 120], [[68, 69], [154, 91], [143, 162]], 2)
+    grid = torch.Tensor(grid_obj.get_grid_positives())
+    anchor = torch.Tensor(anchor_obj.get_anchor_positives())
+    print(grid)
+    print(anchor)
+    # iou = box_ciou(torch.Tensor([5, 20, 30, 40]), torch.Tensor([10, 20, 30, 40]))
+    # print(iou)
 
 if __name__ == '__main__':
+    test_iou_shape()
+    # test_anchor()
+    # test_iou()
 
-    # 模型
-    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model1 = CSPDarknetP5()
-    model1.to(device)
-
-    model2 = Yolov5PAFPN()
-    model2.to(device)
-
-    model3 = Yolov5Head(80)
-    model3.to(device)
-
-
-    dataDir = 'data/cat'
-    dataType = 'all'
-    annFile = '{}/annotations/annotations_{}.json'.format(dataDir, dataType)
-    train_data_transforms = transforms.Compose([
-        transforms.Resize([640, 640]),
-        transforms.ToTensor()
-    ])
-    train_dataset = CocoDetection(root=dataDir+"/images", annFile=annFile, transform=train_data_transforms)
-    train_data_loader = Data.DataLoader(train_dataset, batch_size=10, shuffle=True, num_workers=2)
-    for index, (image, label) in enumerate(train_data_loader):
-        arr1 = model1(image.to(device))
-        arr2 = model2(arr1[0], arr1[1], arr1[2])
-        arr3 = model3(arr2[0], arr2[1], arr2[2])
-        for arr in arr3:
-            print(arr.shape)
-        break
