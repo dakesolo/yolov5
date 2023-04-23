@@ -7,7 +7,7 @@ class Grid:
         self.gt_xy = gt_xy
         self.img_wh = img_wh
         self.grid_count_rc = grid_count_rc
-        self.grid_wh = [img_wh[0] / grid_count_rc[0], img_wh[1] / grid_count_rc[1]]
+        self.grid_wh = [img_wh[0] / self.grid_count_rc[0], img_wh[1] / self.grid_count_rc[1]]
         self.grid_center_xy = [self.grid_wh[0] / 2, self.grid_wh[1] / 2]
         self.grid_index_rc = [gt_xy[0] // self.grid_wh[0], gt_xy[1] // self.grid_wh[1]]
         self.grid_index_xy = [self.grid_index_rc[0] * self.grid_wh[0], self.grid_index_rc[1] * self.grid_wh[1]]
@@ -64,6 +64,52 @@ class Grid:
             x, y, r, c, _x, _y
         ]
 
+class Grid2:
+    def __init__(self, gt_xy, img_wh, grid_count_rc):
+        self.gt_x = gt_xy[..., 0:1]
+        self.gt_y = gt_xy[..., 1:2]
+        self.img_w = img_wh[..., 0]
+        self.img_h = img_wh[..., 1]
+        self.grid_count_r = grid_count_rc[..., 0]
+        self.grid_count_c = grid_count_rc[..., 1]
+        self.grid_w = torch.div(self.img_w, self.grid_count_r)
+        self.grid_h = torch.div(self.img_h, self.grid_count_c)
+        self.grid_center_x = self.grid_w / 2
+        self.grid_center_y = self.grid_h / 2
+
+        # print(torch.div(torch.tensor([ [34.],  [78.],  [10.], [180.]]), self.grid_w, rounding_mode='floor'))
+        self.grid_index_c = torch.div(self.gt_x, self.grid_w, rounding_mode='floor')
+        self.grid_index_r = torch.div(self.gt_y, self.grid_h, rounding_mode='floor')
+        self.grid_index_x = self.grid_index_c * self.grid_w
+        self.grid_index_y = self.grid_index_r * self.grid_h
+        self.grid_index_center_x = self.grid_index_x + self.grid_center_x
+        self.grid_index_center_y = self.grid_index_y + self.grid_center_y
+
+    def get_grid_wh(self):
+        return self.grid_wh
+    def get_grid_center_xy(self):
+        return self.grid_center_xy
+    def get_grid_index_rc(self):
+        return self.grid_index_rc
+    def get_grid_index_xy(self):
+        return self.grid_index_xy
+    def get_grid_index_center_xy(self):
+        return self.grid_index_center_xy
+
+    def get_grid_positives(self):
+        # print(self.grid_index_center_y)
+        # print(self.gt_y)
+        # print(self.grid_index_r)
+
+        grid_index_extend_c = torch.gt(self.grid_index_center_x, self.gt_x)
+        grid_index_extend_c = torch.where(grid_index_extend_c == True, self.grid_index_c + 1, self.grid_index_c - 1)
+        # print(grid_index_extend_c)
+
+
+        grid_index_extend_r = torch.gt(self.grid_index_center_y, self.gt_y)
+        grid_index_extend_r = torch.where(grid_index_extend_r == True, self.grid_index_r + 1, self.grid_index_r - 1)
+        grid_positives = torch.stack([grid_index_extend_r, grid_index_extend_c, grid_index_extend_c * self.grid_w, grid_index_extend_r * self.grid_h], dim=2)
+        return torch.where(grid_positives > 0, grid_positives, 0)
 class Anchor:
     def __init__(self, gt_wh, anchor_list, anchor_thr = 4):
         self.gt_wh = gt_wh
@@ -78,9 +124,32 @@ class Anchor:
             rw = max(rw, 1 / rw)
             rh = max(rh, 1 / rh)
             r = max(rw, rh)
-            if r >= self.anchor_thr:
+            if r < self.anchor_thr:
                 _anchor_list.append(anchor)
         return _anchor_list
+
+class Anchor2:
+    def __init__(self, gt_wh, anchor, anchor_thr = torch.Tensor([4])):
+        self.gt_wh = gt_wh
+        self.anchor = anchor
+        self.anchor_thr = anchor_thr
+
+    def get_anchor_positives(self):
+        gt_w = self.gt_wh[..., :1].unsqueeze(2).unsqueeze(3)
+        gt_h = self.gt_wh[..., 1:].unsqueeze(2).unsqueeze(3)
+        rw = torch.div(gt_w, self.anchor[...,:1])
+        rh = torch.div(gt_h, self.anchor[...,1:])
+        rw = torch.max(rw, 1 / rw)
+        rh = torch.max(rh, 1 / rh)
+        r = torch.max(rw, rh)
+        i = torch.where(r < self.anchor_thr, 1, 0)
+        # print(i)
+        # i = i.unsqueeze(3)
+        # print(i)
+        # i = i.repeat( 1, 1, 2)
+        return self.anchor * i
+
+
 
 def bbox_iou(box1, box2, x1y1x2y2=True, GIoU=False, DIoU=False, CIoU=False):
     # Returns the IoU of box1 to box2. box1 is 4, box2 is nx4
@@ -152,6 +221,9 @@ def box_ciou(b1, b2):
     b2_wh_half = b2_wh / 2.
     b2_mins = b2_xy - b2_wh_half
     b2_maxes = b2_xy + b2_wh_half
+
+    # print(b1_mins)
+    # print(b2_mins)
 
     # 求真实框和预测框所有的iou
     intersect_mins = torch.max(b1_mins, b2_mins)
