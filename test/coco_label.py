@@ -3,6 +3,7 @@ import sys
 
 import cv2
 import torch
+from PIL import Image, ImageDraw
 from matplotlib import pyplot as plt
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -204,9 +205,63 @@ def img_view():
     plt.show()
     # plt.savefig('testbluelinew.jpg')
 
+def retangle():
+    dataDir = '../data/cat'
+    dataType = 'all'
+    annFile = '{}/annotations/annotations_{}.json'.format(dataDir, dataType)
+
+    coco = COCO(annFile)
+    print(coco.dataset.keys())
+
+    # 类别信息
+    catIds = coco.getCatIds(catNms=['cat'])
+    catInfo = coco.loadCats(catIds)
+    print(f"catIds:{catIds}")
+    print(f"catcls:{catInfo}")
+
+    # 图像信息
+    imgIds = coco.getImgIds(catIds=catIds)
+    index = 5  # 随便选择一张图
+    imgInfo = coco.loadImgs(imgIds[index])[0]
+    print(f"imgIds:{imgIds}")
+    print(f"img:{imgInfo}")
+
+    # 标注信息
+    annIds = coco.getAnnIds(imgIds=imgInfo['id'], catIds=catIds, iscrowd=None)
+    annsInfo = coco.loadAnns(annIds)
+    print(f"annIds:{annIds}")
+    print(f"annsInfo:{annsInfo}")
+
+    i = cv2.imread(os.path.join(r'../data/cat/images', imgInfo['file_name']))
+    i = suofang(i, 640, 640)
+    cv2.rectangle(i, (20, 30), (50, 100), (0, 255, 0), 2)
+    cv2.imshow('picture', i)
+    cv2.waitKey(0)
+
+def suofang(im,target_height,target_width):
+    height, width = im.shape[:2]  # 取彩色图片的长、宽。
+
+    ratio_h = height / target_height
+    ration_w = width / target_width
+
+    ratio = max(ratio_h, ration_w)
+
+    # 缩小图像  resize(...,size)--size(width，height)
+    size = (int(width / ratio), int(height / ratio))
+    shrink = cv2.resize(im, size, interpolation=cv2.INTER_AREA)  # 双线性插值
+    BLACK = [0, 0, 0]
+
+    a = (target_width - int(width / ratio)) / 2
+    b = (target_height - int(height / ratio)) / 2
+
+    constant = cv2.copyMakeBorder(shrink, int(b), int(b), int(a), int(a), cv2.BORDER_CONSTANT, value=BLACK)
+    constant = cv2.resize(constant, (target_width, target_height), interpolation=cv2.INTER_AREA)
+    return constant
+
 if __name__ == '__main__':
     current_time1 = time.time()
-    print(get_iou())
+    # print(get_iou())
     # img_view()
+    print(retangle())
     current_time2 = time.time()
     print(current_time2 - current_time1)
