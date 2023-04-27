@@ -163,6 +163,7 @@ def get_shape():
         ],
         size=new_image_size
     )
+    print(label_shape.int())
     print(label_shape[..., 8:].view(-1).tolist())
     image_show(new_img, label_shape[..., 4:8].view(-1, 4).int().tolist(), label_shape[..., 8:].view(-1).tolist())
 
