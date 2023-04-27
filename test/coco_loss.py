@@ -139,8 +139,12 @@ def get_shape():
     img = cv2.imread(os.path.join(r'../data/cat/images', imgInfo['file_name']))
     gt_boxs = []
     for anns in annsInfo:
-        gt_boxs.append(anns['bbox'])
-
+        gt_boxs.append([
+            anns['bbox'][0] + anns['bbox'][2] / 2,
+            anns['bbox'][1] + anns['bbox'][3] / 2,
+            anns['bbox'][2],
+            anns['bbox'][3]
+        ])
 
     new_image_size = [640, 640]
     new_img, new_gt_boxs = suofang(img, np.array(gt_boxs), new_image_size[0], new_image_size[1])
