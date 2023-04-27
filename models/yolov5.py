@@ -72,16 +72,14 @@ class Grid2:
         self.img_h = img_wh[..., 1]
         self.grid_count_r = grid_count_rc[..., 0]
         self.grid_count_c = grid_count_rc[..., 1]
-        self.grid_w = torch.div(self.img_w, self.grid_count_r)
-        self.grid_h = torch.div(self.img_h, self.grid_count_c)
-        self.grid_center_x = self.grid_w / 2
-        self.grid_center_y = self.grid_h / 2
-
-        # print(torch.div(torch.tensor([ [34.],  [78.],  [10.], [180.]]), self.grid_w, rounding_mode='floor'))
+        self.grid_w = torch.div(self.img_w, self.grid_count_r, rounding_mode='floor')
+        self.grid_h = torch.div(self.img_h, self.grid_count_c, rounding_mode='floor')
+        self.grid_center_x = torch.div(self.grid_w, 2, rounding_mode='floor' )
+        self.grid_center_y = torch.div(self.grid_h, 2, rounding_mode='floor' )
         self.grid_index_c = torch.div(self.gt_x, self.grid_w, rounding_mode='floor')
         self.grid_index_r = torch.div(self.gt_y, self.grid_h, rounding_mode='floor')
-        self.grid_index_x = self.grid_index_c * self.grid_w
-        self.grid_index_y = self.grid_index_r * self.grid_h
+        self.grid_index_x = torch.mul(self.grid_index_c, self.grid_w)
+        self.grid_index_y = torch.mul(self.grid_index_r, self.grid_h)
         self.grid_index_center_x = self.grid_index_x + self.grid_center_x
         self.grid_index_center_y = self.grid_index_y + self.grid_center_y
 
@@ -103,12 +101,13 @@ class Grid2:
 
         grid_index_extend_c = torch.gt(self.grid_index_center_x, self.gt_x)
         grid_index_extend_c = torch.where(grid_index_extend_c == True, self.grid_index_c + 1, self.grid_index_c - 1)
-        # print(grid_index_extend_c)
-
-
         grid_index_extend_r = torch.gt(self.grid_index_center_y, self.gt_y)
         grid_index_extend_r = torch.where(grid_index_extend_r == True, self.grid_index_r + 1, self.grid_index_r - 1)
-        grid_positives = torch.stack([grid_index_extend_r, grid_index_extend_c, grid_index_extend_c * self.grid_w, grid_index_extend_r * self.grid_h], dim=2)
+        grid_index_left_x = grid_index_extend_c * self.grid_w
+        grid_index_left_y = grid_index_extend_r * self.grid_h
+        grid_index_center_x = grid_index_extend_c * self.grid_w + self.grid_center_x
+        grid_index_center_y = grid_index_extend_c * self.grid_w + self.grid_center_y
+        grid_positives = torch.stack([grid_index_extend_r, grid_index_extend_c, grid_index_center_x, grid_index_center_y, grid_index_left_x, grid_index_left_y],dim=2)
         return torch.where(grid_positives > 0, grid_positives, 0)
 class Anchor:
     def __init__(self, gt_wh, anchor_list, anchor_thr = 4):
